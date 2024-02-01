@@ -1,6 +1,8 @@
+const crypto = require('crypto');
+
 import { format } from 'date-fns';
 
-import { SubscriptionPaymentFormParams } from '../types';
+import { PaymentStatus, SubscriptionPaymentFormParams } from '../types';
 
 export class LiqpayService {
   createSubscriptionPaymentForm(options: SubscriptionPaymentFormParams): string {
@@ -42,7 +44,41 @@ export class LiqpayService {
     return htmlForm;
   }
 
-  //   async onUnsubscribe();
+  handlePaymentStatus(options) {
+    const { data, signature } = options;
+    let result = {
+      status: false,
+      orderId: null,
+      amount: null,
+    };
 
-  //   handleLiqPayPaymentStatus();
+    // Verify the authenticity of the request
+    const hash = crypto.createHash('sha1');
+    const correctSignature = hash
+      .update(process.env.PRIVAT_LIQPAY_KEY + data + process.env.PRIVAT_LIQPAY_KEY)
+      .digest('base64');
+
+    const isValidSignature = correctSignature === signature;
+
+    if (!isValidSignature) {
+      return result;
+    }
+
+    // JSON object contains decoded data
+    const decodedData = JSON.parse(Buffer.from(data, 'base64').toString());
+    const { status, order_id, amount } = decodedData;
+
+    // Payment was rejected
+    if (status !== PaymentStatus.Subscribed) {
+      return result;
+    }
+
+    result['status'] = true;
+    result['orderId'] = order_id;
+    result['amount'] = amount;
+
+    return result;
+  }
+
+  //   async onUnsubscribe();
 }
