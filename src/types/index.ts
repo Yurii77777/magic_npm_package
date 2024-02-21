@@ -41,3 +41,8 @@ export interface SubscriptionPaymentFormParams {
   orderId: string;
   buttonTitle: string;
 }
+
+export interface OnUnsubscribeParams {
+  action: PaymentAction.Unsubscribe;
+  orderId: string;
+}

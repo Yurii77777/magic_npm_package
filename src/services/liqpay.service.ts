@@ -1,8 +1,9 @@
 const crypto = require('crypto');
+const axios = require('axios');
 
 import { format } from 'date-fns';
 
-import { PaymentStatus, SubscriptionPaymentFormParams } from '../types';
+import { OnUnsubscribeParams, PaymentStatus, SubscriptionPaymentFormParams } from '../types';
 
 export class LiqpayService {
   createSubscriptionPaymentForm(options: SubscriptionPaymentFormParams): string {
@@ -80,5 +81,51 @@ export class LiqpayService {
     return result;
   }
 
-  //   async onUnsubscribe();
+  async onUnsubscribe(options: OnUnsubscribeParams): Promise<boolean> {
+    const { action, orderId } = options;
+    const LIQPAY_API_URL = 'https://www.liqpay.ua/api/request';
+    let result = false;
+
+    // Prepare payload
+    const jsonString = JSON.stringify({
+      action,
+      version: 3,
+      public_key: process.env.PUBLIC_LIQPAY_KEY,
+      order_id: orderId,
+    });
+    const unsubscribeData = Buffer.from(jsonString).toString('base64');
+
+    // Create signature
+    const hash = crypto.createHash('sha1');
+    const signature = hash
+      .update(process.env.PRIVAT_LIQPAY_KEY + unsubscribeData + process.env.PRIVAT_LIQPAY_KEY)
+      .digest('base64');
+
+    // Payload
+    const requestData = {
+      data: unsubscribeData,
+      signature,
+    };
+
+    // send request via axios
+    try {
+      const { data } = await axios({
+        method: 'post',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        url: LIQPAY_API_URL,
+        data: requestData,
+      });
+
+      const { result: responseResult } = data;
+
+      // TODO: Replace hardcode 'ok'
+      responseResult === 'ok' && (result = true);
+    } catch (error) {
+      console.log('[error]', error);
+    }
+
+    return result;
+  }
 }
