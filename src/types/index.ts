@@ -28,6 +28,10 @@ export enum Currency {
   EUR = 'EUR',
 }
 
+export enum PaymentStatus {
+  Subscribed = 'subscribed',
+}
+
 export interface SubscriptionPaymentFormParams {
   action: PaymentAction;
   subscribePeriodicity: PaymentPeriodicity;
@@ -36,4 +40,9 @@ export interface SubscriptionPaymentFormParams {
   description: string;
   orderId: string;
   buttonTitle: string;
+}
+
+export interface OnUnsubscribeParams {
+  action: PaymentAction.Unsubscribe;
+  orderId: string;
 }
